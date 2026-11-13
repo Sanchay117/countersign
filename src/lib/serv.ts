@@ -37,6 +37,8 @@ export interface ServConfig {
   guard: boolean;
   shadow: boolean;
   shadowIterations: number;
+  /** Output ceiling per request. A verdict is about 400 tokens, so this is ten times what it needs. */
+  maxOutputTokens: number;
   timeoutMs: number;
 }
 
@@ -51,8 +53,14 @@ export function servConfigFromEnv(env: Record<string, string | undefined> = proc
     kronos: flag(env.SERV_KRONOS, true),
     multipath: flag(env.SERV_MULTIPATH, true),
     guard: flag(env.SERV_GUARD, true),
-    shadow: flag(env.SERV_SHADOW, true),
+    // Off by default. Measured on this policy, the shadow agent multiplied the cost of a check
+    // about fifty times and changed no verdict, so it is opt-in for high-value payments.
+    shadow: flag(env.SERV_SHADOW, false),
     shadowIterations: Number(env.SERV_SHADOW_ITERATIONS ?? 3) || 3,
+    // SERV holds each request's cost ceiling against the balance until it settles. With no cap the
+    // ceiling is the model's full output window, and a dozen requests in a minute lock a small
+    // balance. A generous cap keeps the hold tiny without squeezing the verdict.
+    maxOutputTokens: Number(env.SERV_MAX_OUTPUT_TOKENS ?? 4000) || 4000,
     // A cold request can take a minute: SERV builds, audits and caches the reasoning prompt on first use.
     timeoutMs: Number(env.SERV_TIMEOUT_MS ?? 110000) || 110000,
   };
@@ -158,6 +166,7 @@ export async function judge(userMessage: string, cfg: ServConfig = servConfigFro
     response_format: { type: "json_schema", json_schema: VERDICT_SCHEMA as unknown as OpenAI.ResponseFormatJSONSchema["json_schema"] },
     ...(cfg.effort !== "none" ? { reasoning_effort: cfg.effort } : {}),
     ...(tools.length ? { tools } : {}),
+    max_completion_tokens: cfg.maxOutputTokens,
     metadata: { policy: POLICY_VERSION },
   };
 

@@ -115,7 +115,8 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
   for (let step = 0; step < (opts.maxSteps ?? 8); step++) {
     let msg: OpenAI.Chat.Completions.ChatCompletionMessage;
     try {
-      const res = await client.chat.completions.create({ model, messages, tools: TOOLS, tool_choice: "auto", reasoning_effort: "low" });
+      // The output cap keeps SERV's credit reservation per request small; a step needs a few hundred tokens.
+      const res = await client.chat.completions.create({ model, messages, tools: TOOLS, tool_choice: "auto", reasoning_effort: "low", max_completion_tokens: 3000 });
       msg = res.choices[0].message;
     } catch (err) {
       yield { type: "error", message: `The agent's model call failed: ${(err as Error).message}` };

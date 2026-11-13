@@ -122,7 +122,8 @@ Open http://localhost:3210.
 | Variable | Meaning |
 | --- | --- |
 | `SERV_API_KEY` | SERV Reasoning key from console.openserv.ai |
-| `SERV_MODEL` | Base model, default `gpt-5.4-mini` |
+| `SERV_MODEL` | Base model, default `gpt-6-luna`, the smallest in SERV's catalog |
+| `SERV_SHADOW` | Set to `1` to add shadow-agent validation. Off by default, see the cost note above |
 | `KITE_NETWORK` | `testnet` (default) or `mainnet` |
 | `BUYER_PRIVATE_KEY` | The demo agent's wallet. Testnet only |
 | `COUNTERSIGN_PRIVATE_KEY` | Signs receipts and receives payment for `/v1/check` |

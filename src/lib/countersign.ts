@@ -46,7 +46,9 @@ export async function evaluate(mandate: Mandate, attempt: PaymentAttempt, opts: 
   }
 
   const cfg = opts.serv ?? servConfigFromEnv();
-  const j = await (opts.judgeFn ?? judge)(buildUserMessage(mandate, attempt, rules.facts), cfg);
+  const run = opts.judgeFn ?? judge;
+  const message = buildUserMessage(mandate, attempt, rules.facts);
+  const j = await run(message, cfg);
 
   if (j.checks && j.decision && j.summary) {
     const checks = [...rules.checks, ...j.checks];
@@ -55,15 +57,26 @@ export async function evaluate(mandate: Mandate, attempt: PaymentAttempt, opts: 
   }
 
   if (j.meta.guardTripped) {
-    const guard: Check = {
-      id: "instruction_origin",
-      by: "serv",
-      status: "fail",
-      evidence: "SERV's prompt guard refused this request before any model ran: text from the seller reads as an attempt to override instructions.",
-    };
+    // SERV's prompt guard refused the request before any model ran. A payment the guard refused is
+    // never signed. To tell the owner why, the request is judged once more without the guard; the
+    // guard's refusal then counts as at least a warning on the origin check, so the best outcome is a hold.
+    const note = "SERV's prompt guard refused this request on first reading: text in it reads as an attempt to override the checker.";
+    const second = await run(message, { ...cfg, guard: false });
+    if (second.checks && second.decision && second.summary) {
+      const judged = second.checks.map((c): Check => (c.id !== "instruction_origin" ? c : c.status === "pass" ? { ...c, status: "warn", evidence: note } : { ...c, evidence: `${c.evidence} ${note}` }));
+      const checks = [...rules.checks, ...judged];
+      return {
+        decision: stricter(decide(checks), second.decision),
+        summary: second.summary,
+        checks,
+        facts: rules.facts,
+        serv: { ...second.meta, guardTripped: true, features: j.meta.features, latencyMs: (j.meta.latencyMs ?? 0) + (second.meta.latencyMs ?? 0) },
+      };
+    }
+    const guard: Check = { id: "instruction_origin", by: "serv", status: "fail", evidence: note };
     return {
       decision: "block",
-      summary: "Blocked: the seller's text tried to give the agent instructions, and SERV's prompt guard stopped it.",
+      summary: "Blocked: text in this request tried to give the checker instructions, and SERV's prompt guard stopped it.",
       checks: [...rules.checks, guard],
       facts: rules.facts,
       serv: j.meta,

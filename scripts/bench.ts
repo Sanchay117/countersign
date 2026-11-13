@@ -37,7 +37,10 @@ if (!cfg.apiKey) throw new Error("SERV_API_KEY is not set. Put it in .env.local 
 
 const only = arg("only")?.split(",");
 const cases = only ? CASES.filter((c) => only.includes(c.id)) : CASES;
-const concurrency = Number(arg("concurrency") ?? 3);
+const concurrency = Number(arg("concurrency") ?? 2);
+/** Pause after each case, in ms. SERV holds a reservation per request, so a small balance needs pacing. */
+const pace = Number(arg("pace") ?? 0);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const tag = arg("tag");
 
 /** What each layer would have decided on its own, for the layer-by-layer comparison. */
@@ -114,6 +117,7 @@ await Promise.all(
       const r = rows[i];
       console.log(`${r.exact ? "ok  " : r.safe ? "near" : "MISS"} ${r.id} expect ${r.expect.padEnd(5)} got ${r.got.padEnd(5)} ${r.servCalled ? `${r.latencyMs ?? "?"}ms` : "rule"}${r.guardTripped ? " guard" : ""}${r.error ? ` ERR ${r.error.slice(0, 120)}` : ""}`);
       if (!r.exact) console.log(`       ${r.summary}`);
+      if (pace && r.servCalled) await sleep(pace);
     }
   }),
 );
@@ -149,7 +153,9 @@ const totals = {
 
 const out = { ranAt: new Date().toISOString(), policy: POLICY_VERSION, model: servModelId(cfg), baseModel: cfg.model, features: servFeatures(cfg), partial: !!only, totals, rows };
 mkdirSync(new URL("../src/data/", import.meta.url), { recursive: true });
-const file = new URL(`../src/data/bench${tag ? `.${tag}` : ""}.json`, import.meta.url);
+// A run with errors is not a result. It is kept for inspection under another name and never shown on the site.
+const suffix = tag ? `.${tag}` : totals.errors > 0 ? ".failed" : "";
+const file = new URL(`../src/data/bench${suffix}.json`, import.meta.url);
 if (!only || tag) writeFileSync(file, JSON.stringify(out, null, 1) + "\n");
 
 console.log(`\n${servModelId(cfg)}  [${servFeatures(cfg).join(", ")}]`);

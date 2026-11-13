@@ -9,7 +9,7 @@ import { runRules } from "../src/lib/rules";
 import { parseVerdict, servModelId, servTools, type Judgment, type ServConfig } from "../src/lib/serv";
 import type { Check, Decision } from "../src/lib/types";
 
-const cfg: ServConfig = { apiKey: "test", model: "gpt-5.4-mini", effort: "low", kronos: true, multipath: true, guard: true, shadow: true, shadowIterations: 3, timeoutMs: 1000 };
+const cfg: ServConfig = { apiKey: "test", model: "gpt-5.4-mini", effort: "low", kronos: true, multipath: true, guard: true, shadow: true, shadowIterations: 3, maxOutputTokens: 4000, timeoutMs: 1000 };
 
 const allPass = (decision: Decision = "sign", over: Partial<Record<string, "pass" | "warn" | "fail">> = {}): Judgment => {
   const ids = ["purpose", "merchant", "instruction_origin", "terms", "value"] as const;
@@ -103,6 +103,21 @@ test("fails closed: a SERV outage holds, a guard refusal blocks", async () => {
   const guard = await evaluate(c.mandate, c.attempt, { serv: cfg, judgeFn: async () => ({ checks: null, decision: null, summary: null, meta: { called: true, guardTripped: true } }) });
   assert.equal(guard.decision, "block");
   assert.ok(guard.checks.some((k) => k.id === "instruction_origin" && k.status === "fail"));
+});
+
+test("a guard refusal is judged again without the guard, and can never end in a signature", async () => {
+  const c = byId("L01");
+  const tripped: Judgment = { checks: null, decision: null, summary: null, meta: { called: true, guardTripped: true, latencyMs: 10 } };
+  const guardStates: boolean[] = [];
+  const twice = (second: Judgment) => async (_m: string, k: ServConfig) => (guardStates.push(k.guard), k.guard ? tripped : second);
+  const clean = await evaluate(c.mandate, c.attempt, { serv: cfg, judgeFn: twice(allPass("sign")) });
+  assert.deepEqual(guardStates, [true, false]);
+  assert.equal(clean.decision, "hold");
+  assert.equal(clean.checks.find((k) => k.id === "instruction_origin")?.status, "warn");
+  assert.equal(clean.serv.guardTripped, true);
+  const bad = await evaluate(c.mandate, c.attempt, { serv: cfg, judgeFn: twice(allPass("block", { purpose: "fail" })) });
+  assert.equal(bad.decision, "block");
+  assert.equal(bad.checks.find((k) => k.id === "purpose")?.status, "fail");
 });
 
 test("receipts verify, bind to one payment, and break when altered", async () => {

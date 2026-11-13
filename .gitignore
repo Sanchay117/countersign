@@ -10,3 +10,4 @@ next-env.d.ts
 .vercel
 .claude
 .kite-passport
+src/data/bench.failed.json

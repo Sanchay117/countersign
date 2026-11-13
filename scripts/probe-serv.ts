@@ -38,6 +38,7 @@ try {
       response_format: { type: "json_schema", json_schema: VERDICT_SCHEMA as never },
       ...(cfg.effort !== "none" ? { reasoning_effort: cfg.effort } : {}),
       ...(tools.length ? { tools } : {}),
+      max_completion_tokens: cfg.maxOutputTokens,
     })
     .withResponse();
   const ms = Date.now() - started;
