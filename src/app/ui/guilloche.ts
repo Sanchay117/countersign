@@ -1,0 +1,50 @@
+/**
+ * Engine-turned ornament, computed rather than drawn. Cheque printers cut
+ * these patterns with a geometric lathe because they are easy to generate
+ * from a formula and hard to copy by hand. Same idea here.
+ */
+
+const f = (n: number) => n.toFixed(2);
+
+/** A closed rosette (hypotrochoid) centred on cx, cy. */
+export function rosette(cx: number, cy: number, radius: number, lobes: number, depth: number, twist = 1): string {
+  const steps = 720;
+  let d = "";
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * Math.PI * 2 * twist;
+    const r = radius * (1 - depth + depth * Math.cos(lobes * t));
+    d += `${i ? "L" : "M"}${f(cx + r * Math.cos(t))} ${f(cy + r * Math.sin(t))}`;
+  }
+  return `${d}Z`;
+}
+
+/** A horizontal wave from x0 to x1 around y. */
+export function wave(x0: number, x1: number, y: number, amplitude: number, wavelength: number, phase = 0): string {
+  const step = wavelength / 12;
+  let d = "";
+  for (let x = x0, i = 0; x <= x1 + 0.01; x += step, i++) d += `${i ? "L" : "M"}${f(x)} ${f(y + amplitude * Math.sin(((x - x0) / wavelength) * Math.PI * 2 + phase))}`;
+  return d;
+}
+
+/** A vertical wave from y0 to y1 around x. */
+export function waveV(y0: number, y1: number, x: number, amplitude: number, wavelength: number, phase = 0): string {
+  const step = wavelength / 12;
+  let d = "";
+  for (let y = y0, i = 0; y <= y1 + 0.01; y += step, i++) d += `${i ? "L" : "M"}${f(x + amplitude * Math.sin(((y - y0) / wavelength) * Math.PI * 2 + phase))} ${f(y)}`;
+  return d;
+}
+
+/** The braided band that frames a cheque: several waves of the same pitch, out of phase. */
+export function band(x0: number, x1: number, y: number, amplitude: number, wavelength: number, strands = 4): string[] {
+  return Array.from({ length: strands }, (_, i) => wave(x0, x1, y, amplitude, wavelength, (i / strands) * Math.PI * 2));
+}
+
+export function bandV(y0: number, y1: number, x: number, amplitude: number, wavelength: number, strands = 4): string[] {
+  return Array.from({ length: strands }, (_, i) => waveV(y0, y1, x, amplitude, wavelength, (i / strands) * Math.PI * 2));
+}
+
+/** The mark: three nested rosettes. Used as logo, seal and loader. */
+export const MARK_PATHS = [rosette(32, 32, 29, 12, 0.14), rosette(32, 32, 22, 9, 0.2), rosette(32, 32, 14, 6, 0.26)];
+
+/** The larger medallion printed on each cheque. */
+export const SEAL_PATHS = [rosette(60, 60, 57, 24, 0.07), rosette(60, 60, 50, 16, 0.12), rosette(60, 60, 41, 12, 0.18), rosette(60, 60, 31, 8, 0.24), rosette(60, 60, 20, 5, 0.3)];

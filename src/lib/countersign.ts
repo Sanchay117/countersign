@@ -38,7 +38,7 @@ export async function evaluate(mandate: Mandate, attempt: PaymentAttempt, opts: 
     const first = rules.checks.find((c) => c.status === "fail")!;
     return {
       decision: "block",
-      summary: `Blocked by a hard limit before any model was asked: ${first.evidence}`,
+      summary: `Blocked by an exact check, before any model was asked: ${first.evidence}`,
       checks: rules.checks,
       facts: rules.facts,
       serv: { called: false },

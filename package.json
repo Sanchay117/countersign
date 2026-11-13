@@ -10,9 +10,11 @@
     "start": "next start -p 3210",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "bench": "tsx scripts/bench.ts",
+    "bench": "tsx --env-file=.env.local scripts/bench.ts",
     "wallets": "tsx scripts/wallets.ts",
-    "balance": "tsx scripts/balance.ts"
+    "doctor": "tsx --env-file=.env.local scripts/doctor.ts",
+    "pay": "tsx --env-file=.env.local scripts/pay.ts",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@x402/core": "^2.31.0",

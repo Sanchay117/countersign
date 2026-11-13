@@ -4,7 +4,10 @@
  * (see policy.ts). A failed rule blocks the payment without spending a token.
  */
 import { atomicToUsd, kiteChainByNetwork, usdToAtomic } from "./kite";
-import type { Check, Facts, Mandate, PaymentAttempt } from "./types";
+import type { Check, Facts, Mandate, PaymentAttempt, RuleCheckId } from "./types";
+
+/** The limits a spending session enforces on its own: token, amount, budget and window. */
+export const LIMIT_RULES: RuleCheckId[] = ["network_asset", "per_payment_limit", "budget", "session"];
 
 export interface RuleResult {
   checks: Check[];
