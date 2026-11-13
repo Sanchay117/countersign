@@ -1,0 +1,9 @@
+allowBuilds:
+  esbuild: set this to true or false
+minimumReleaseAgeExclude:
+  - '@x402/core@2.31.0'
+  - '@x402/evm@2.31.0'
+  - '@x402/extensions@2.31.0'
+  - '@x402/fetch@2.31.0'
+  - '@x402/next@2.31.0'
+  - openai@7.56.0
