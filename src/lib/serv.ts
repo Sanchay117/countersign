@@ -45,14 +45,16 @@ const flag = (v: string | undefined, fallback: boolean) => (v === undefined || v
 export function servConfigFromEnv(env: Record<string, string | undefined> = process.env): ServConfig {
   return {
     apiKey: (env.SERV_API_KEY ?? "").trim(),
-    model: (env.SERV_MODEL ?? "gpt-5.4-mini").trim(),
+    // The smallest model in SERV's catalog. Start small and move up only if the trap suite says so.
+    model: (env.SERV_MODEL ?? "").trim() || "gpt-6-luna",
     effort: ((env.SERV_EFFORT ?? "low").trim() as ServConfig["effort"]) || "low",
     kronos: flag(env.SERV_KRONOS, true),
     multipath: flag(env.SERV_MULTIPATH, true),
     guard: flag(env.SERV_GUARD, true),
     shadow: flag(env.SERV_SHADOW, true),
     shadowIterations: Number(env.SERV_SHADOW_ITERATIONS ?? 3) || 3,
-    timeoutMs: Number(env.SERV_TIMEOUT_MS ?? 60000) || 60000,
+    // A cold request can take a minute: SERV builds, audits and caches the reasoning prompt on first use.
+    timeoutMs: Number(env.SERV_TIMEOUT_MS ?? 110000) || 110000,
   };
 }
 
