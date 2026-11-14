@@ -83,12 +83,14 @@ function reduce(lane: Lane, e: AgentEvent): Lane {
   return { ...lane, items };
 }
 
+/** The server refused to start a run (rate limit, no key, no wallet). Nothing was spent. */
+class NotStarted extends Error {}
+
 async function streamRun(task: string, mode: Mode, onEvent: (e: AgentEvent) => void, signal: AbortSignal) {
   const res = await fetch("/api/agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task, mode }), signal });
   if (!res.ok || !res.body) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    onEvent({ type: "error", message: body?.error ?? `The run could not start (${res.status}).` });
-    return;
+    throw new NotStarted(body?.error ?? `The run could not start (${res.status}).`);
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -272,6 +274,7 @@ export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }
   const [guarded, setGuarded] = useState<Lane>(() => (recorded ? replay(recorded.countersign) : EMPTY));
   const [ranTask, setRanTask] = useState(recorded?.task ?? PRESETS[0].task);
   const [showingRecorded, setShowingRecorded] = useState(!!recorded);
+  const [paused, setPaused] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   const loadStatus = useCallback(() => {
@@ -295,16 +298,33 @@ export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }
     const ctl = new AbortController();
     abort.current = ctl;
     setShowingRecorded(false);
+    setPaused(null);
     setRanTask(t);
     setLimits({ ...EMPTY, running: true });
     setGuarded({ ...EMPTY, running: true });
+    const refusal: { message: string | null } = { message: null };
     const lane = (mode: Mode, set: typeof setLimits) =>
       streamRun(t, mode, (e) => set((l) => reduce(l, e)), ctl.signal)
         .catch((err) => {
-          if (!ctl.signal.aborted) set((l) => reduce(l, { type: "error", message: (err as Error).message || "The connection dropped." }));
+          if (ctl.signal.aborted) return;
+          if (err instanceof NotStarted) refusal.message = err.message;
+          else set((l) => reduce(l, { type: "error", message: (err as Error).message || "The connection dropped." }));
         })
         .finally(() => set((l) => ({ ...l, running: false })));
     await Promise.all([lane("limits", setLimits), lane("countersign", setGuarded)]);
+    if (refusal.message && !ctl.signal.aborted) {
+      // Live runs are off right now. Put the recorded run back so the page still shows the real thing.
+      setPaused(refusal.message);
+      if (recorded) {
+        setLimits(replay(recorded.limits));
+        setGuarded(replay(recorded.countersign));
+        setRanTask(recorded.task);
+        setShowingRecorded(true);
+      } else {
+        setLimits(EMPTY);
+        setGuarded(EMPTY);
+      }
+    }
     loadStatus();
   };
 
@@ -356,6 +376,8 @@ export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }
         {status && !status.servConfigured ? <p className="notice bad-notice">The live run is switched off: this deployment has no SERV API key.</p> : null}
         {status && funds !== null && funds < 0.1 ? <p className="notice">The demo wallet is low on test funds. Verdicts still run for real, but payments may not settle.</p> : null}
       </form>
+
+      {paused ? <p className="notice" style={{ marginTop: "1.2rem" }}>{paused}</p> : null}
 
       {showingRecorded && recorded ? (
         <p className="recorded-note">

@@ -35,9 +35,13 @@ export async function POST(request: NextRequest) {
 
   const ip = clientIp(request);
   const perHour = allow(`agent:h:${ip}`, num(process.env.AGENT_PER_HOUR, 12), 3_600_000);
-  const global = allow("agent:global", num(process.env.AGENT_GLOBAL_PER_DAY, 400), 86_400_000);
+  const global = allow("agent:global", num(process.env.AGENT_GLOBAL_PER_DAY, 120), 86_400_000);
   const limited = [perHour, global].find((l) => !l.ok);
-  if (limited) return Response.json({ error: "The live agent is rate limited. Try again shortly.", retryAfterSeconds: limited.retryAfterSeconds }, { status: 429 });
+  if (limited)
+    return Response.json(
+      { error: "Live runs are paused for the moment, to protect this demo's small SERV budget. The recorded run below is real: same site, same wallet, real transactions.", retryAfterSeconds: limited.retryAfterSeconds },
+      { status: 429 },
+    );
 
   const mandate: Mandate = { task, ...DEMO_LIMITS, expiresAt: new Date(Date.now() + 3_600_000).toISOString() };
   const account = privateKeyToAccount(key as `0x${string}`);

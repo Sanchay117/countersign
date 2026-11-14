@@ -120,7 +120,11 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
       const res = await client.chat.completions.create({ model, messages, tools: TOOLS, tool_choice: "auto", reasoning_effort: "none", max_completion_tokens: 3000 });
       msg = res.choices[0].message;
     } catch (err) {
-      yield { type: "error", message: `The agent's model call failed: ${(err as Error).message}` };
+      const text = (err as Error).message ?? "";
+      yield {
+        type: "error",
+        message: /insufficient credits/i.test(text) ? "This demo has used up its SERV credits for now, so the agent cannot think. Nothing was paid. The recorded run is real and shows the same thing." : `The agent's model call failed: ${text}`,
+      };
       return;
     }
     messages.push(msg);
