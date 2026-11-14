@@ -919,6 +919,21 @@ button {
   color: var(--ink);
 }
 
+.recorded-note {
+  margin-top: 1.2rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid var(--engrave);
+  background: rgb(31 90 69 / 0.07);
+  font-size: 0.95rem;
+}
+
+.recorded-note b {
+  font-family: var(--typed);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .lanes {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1164,6 +1179,24 @@ button {
   font-size: 0.68rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.checks-rest {
+  border-top: 1px solid var(--rule);
+}
+
+.checks-rest > summary {
+  cursor: pointer;
+  padding: 0.5rem 0.8rem;
+  font-family: var(--typed);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--engrave);
+}
+
+.checks-rest .checks {
+  border-top: 1px solid var(--rule-soft);
 }
 
 .status-pass {

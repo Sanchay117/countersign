@@ -29,7 +29,7 @@ const r = await payGuarded(
     mandate: { task, ...DEMO_LIMITS, expiresAt: new Date(Date.now() + 3_600_000).toISOString() },
     history: [],
     mode: mode === "countersign" ? "countersign" : "limits",
-    intent: { listing: toListing(origin, shop), alternatives: SHOPS.filter((s) => s.id !== shop.id && s.category === shop.category).map((s) => toListing(origin, s)), agentNote: `${shop.merchant} fits the task.` },
+    intent: { listing: toListing(origin, shop), alternatives: SHOPS.filter((s) => s.id !== shop.id && s.category === shop.category).map((s) => ({ ...toListing(origin, s), description: undefined })), agentNote: `${shop.merchant} fits the task.` },
   },
 );
 console.log(`outcome: ${r.outcome} (${Date.now() - started} ms)`);

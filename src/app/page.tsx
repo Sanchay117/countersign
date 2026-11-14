@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
 import bench from "@/data/bench.json";
+import run from "@/data/run.json";
 import { CASES, CASE_TIERS } from "@/lib/cases";
 import { LIMIT_RULES, runRules } from "@/lib/rules";
 import type { Decision, RuleCheckId } from "@/lib/types";
-import { AgentDemo } from "./ui/AgentDemo";
+import { AgentDemo, type RecordedRun } from "./ui/AgentDemo";
 import { Mark } from "./ui/Cheque";
 import { HeroCheque } from "./ui/HeroCheque";
 import { Suite, type SuiteCase } from "./ui/Suite";
@@ -71,6 +72,7 @@ export default async function Page() {
   const got = new Map(b.rows.map((r) => [r.id, r.got]));
   const suiteCases: SuiteCase[] = CASES.map((c) => ({ id: c.id, title: c.title, tier: c.tier, why: c.why, expect: c.expect, got: got.get(c.id) ?? null }));
   const ranOn = b.ranAt ? new Date(b.ranAt).toISOString().slice(0, 10) : null;
+  const recorded = (run as unknown as RecordedRun).recordedAt ? (run as unknown as RecordedRun) : null;
 
   return (
     <>
@@ -208,7 +210,7 @@ export default async function Page() {
                 Both agents run on SERV Reasoning and shop the same market with real payments on {network}. Three merchants are honest. Six each run one trap that fits inside the spending limits. The only difference between the agents is the second signature.
               </p>
             </div>
-            <AgentDemo />
+            <AgentDemo recorded={recorded} />
           </div>
         </section>
 

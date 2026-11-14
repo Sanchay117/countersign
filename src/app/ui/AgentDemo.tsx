@@ -255,12 +255,23 @@ function LaneView({ mode, lane, task, network, explorer }: { mode: Mode; lane: L
   );
 }
 
-export function AgentDemo() {
-  const [task, setTask] = useState(PRESETS[0].task);
+export interface RecordedRun {
+  recordedAt: string;
+  task: string;
+  limits: AgentEvent[];
+  countersign: AgentEvent[];
+}
+
+const replay = (events: AgentEvent[]): Lane => events.reduce(reduce, EMPTY);
+
+export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }) {
+  const [task, setTask] = useState(recorded?.task ?? PRESETS[0].task);
   const [status, setStatus] = useState<Status | null>(null);
-  const [limits, setLimits] = useState<Lane>(EMPTY);
-  const [guarded, setGuarded] = useState<Lane>(EMPTY);
-  const [ranTask, setRanTask] = useState(PRESETS[0].task);
+  // Until someone presses the button, the lanes show a run recorded from this site, real transactions included.
+  const [limits, setLimits] = useState<Lane>(() => (recorded ? replay(recorded.limits) : EMPTY));
+  const [guarded, setGuarded] = useState<Lane>(() => (recorded ? replay(recorded.countersign) : EMPTY));
+  const [ranTask, setRanTask] = useState(recorded?.task ?? PRESETS[0].task);
+  const [showingRecorded, setShowingRecorded] = useState(!!recorded);
   const abort = useRef<AbortController | null>(null);
 
   const loadStatus = useCallback(() => {
@@ -283,6 +294,7 @@ export function AgentDemo() {
     abort.current?.abort();
     const ctl = new AbortController();
     abort.current = ctl;
+    setShowingRecorded(false);
     setRanTask(t);
     setLimits({ ...EMPTY, running: true });
     setGuarded({ ...EMPTY, running: true });
@@ -344,6 +356,12 @@ export function AgentDemo() {
         {status && !status.servConfigured ? <p className="notice bad-notice">The live run is switched off: this deployment has no SERV API key.</p> : null}
         {status && funds !== null && funds < 0.1 ? <p className="notice">The demo wallet is low on test funds. Verdicts still run for real, but payments may not settle.</p> : null}
       </form>
+
+      {showingRecorded && recorded ? (
+        <p className="recorded-note">
+          <b>Recorded run, {new Date(recorded.recordedAt).toISOString().slice(0, 10)}.</b> These are real payments this site made on {network}, and the links open them on the explorer. Press the button to send two fresh agents.
+        </p>
+      ) : null}
 
       <div className="lanes">
         <LaneView mode="limits" lane={limits} task={ranTask} network={network} explorer={explorer} />

@@ -51,7 +51,7 @@ const STATE_LABEL: Record<ChequeState, string> = {
 
 export function Cheque({ serial, network, payee, amount, listed, memo, mandate, state, signedBy = "Countersign", size = "slip", className = "" }: ChequeProps) {
   return (
-    <article className={`cheque cheque-${size} ${className}`} data-state={state} aria-label={`Payment of ${amount} to ${payee}. ${STATE_LABEL[state]}.`}>
+    <article className={`cheque cheque-${size} ${className}`} data-state={state} aria-label={`Payment of ${amount} to ${payee}. ${state === "sign" && signedBy !== "Countersign" ? "Signed without being read" : STATE_LABEL[state]}.`}>
       <div className="cheque-safety" style={{ backgroundImage: SAFETY }} aria-hidden="true" />
       <div className="cheque-band cheque-band-t" style={{ backgroundImage: BAND_H }} aria-hidden="true" />
       <div className="cheque-band cheque-band-b" style={{ backgroundImage: BAND_H }} aria-hidden="true" />
