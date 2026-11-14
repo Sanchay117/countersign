@@ -161,7 +161,8 @@ export async function payGuarded(url: string, init: RequestInit, opts: PayOption
   if (result.settlement) result.outcome = "paid";
   else if (result.receipt) {
     result.outcome = "failed";
-    result.error ??= `merchant answered ${res.status} without settling`;
+    const reason = (result.body as { error?: unknown } | null)?.error;
+    result.error ??= typeof reason === "string" && reason ? reason : `merchant answered ${res.status} without settling`;
   } else result.outcome = "free";
   return result;
 }

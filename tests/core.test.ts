@@ -170,6 +170,10 @@ test("look-alike names are found by exact comparison, and unrelated names are no
   assert.match(resemblance("Frankfurter FX Secure Pay", "Frankfurter FX") ?? "", /words added/);
   assert.match(resemblance("Open-Meteo Wether", "Open-Meteo Weather") ?? "", /one or two letters/);
   assert.equal(resemblance("Open-Meteo Weather", "Open-Meteo Weather"), null);
+  // The name being copied is not the copy.
+  assert.equal(resemblance("Open-Meteo Weather", "Open-Rneteo Weather"), null);
+  assert.equal(resemblance("Frankfurter FX", "Frankfurter FX Secure Pay"), null);
+  assert.equal(resemblance("Frankfurter FX", "Frankfurтer FX"), null);
   assert.equal(resemblance("Open-Meteo Air Quality", "Open-Meteo Weather"), null);
   assert.equal(resemblance("RateDesk", "Frankfurter FX"), null);
   assert.equal(resemblance("StormGlass Pro", "Open-Meteo Weather"), null);

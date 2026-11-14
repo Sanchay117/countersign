@@ -107,6 +107,7 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
 
   const history: PastPayment[] = [];
   const tried = new Set<string>();
+  const refused = new Set<string>();
   let browsed = false;
   let spent = "0";
   let lost = "0";
@@ -116,7 +117,7 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
     let msg: OpenAI.Chat.Completions.ChatCompletionMessage;
     try {
       // The output cap keeps SERV's credit reservation per request small; a step needs a few hundred tokens.
-      const res = await client.chat.completions.create({ model, messages, tools: TOOLS, tool_choice: "auto", reasoning_effort: "low", max_completion_tokens: 3000 });
+      const res = await client.chat.completions.create({ model, messages, tools: TOOLS, tool_choice: "auto", reasoning_effort: "none", max_completion_tokens: 3000 });
       msg = res.choices[0].message;
     } catch (err) {
       yield { type: "error", message: `The agent's model call failed: ${(err as Error).message}` };
@@ -167,8 +168,13 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
               mode: opts.mode,
               intent: {
                 listing: toListing(opts.origin, shop),
-                // The agent only knows about other listings if it looked at the catalog.
-                alternatives: browsed ? SHOPS.filter((s) => s.id !== shop.id && s.category === shop.category).map((s) => toListing(opts.origin, s)) : undefined,
+                // The agent only knows about other listings if it looked at the catalog. A listing the
+                // wallet already refused is no longer an alternative. The checker gets each
+                // alternative's name, title and price, not its sales copy: another merchant's
+                // description is not part of this payment.
+                alternatives: browsed
+                  ? SHOPS.filter((s) => s.id !== shop.id && s.category === shop.category && !refused.has(s.id)).map((s) => ({ ...toListing(opts.origin, s), description: undefined }))
+                  : undefined,
                 agentNote: note,
               },
             },
@@ -186,6 +192,7 @@ export async function* runAgent(opts: AgentOptions): AsyncGenerator<AgentEvent> 
             toolResult = { status: "paid", paid_usd: usd, data: result.body };
           } else if (result.outcome === "stopped") {
             stopped++;
+            refused.add(shop.id);
             const failed = result.receipt?.checks.filter((c) => c.status !== "pass").map((c) => c.evidence) ?? [];
             toolResult = { status: "refused", decision: result.receipt?.decision ?? "block", reason: result.receipt?.summary ?? result.error, details: failed };
           } else toolResult = { status: "error", error: result.error ?? "payment failed" };

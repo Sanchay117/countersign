@@ -55,16 +55,28 @@ export function hostName(url: string | undefined): string | null {
   }
 }
 
-/** How `a` resembles `b`, or null when it does not (or when they are simply the same name). */
+/**
+ * How `a` looks like a copy of `b`, or null when it does not. Direction matters: the copy is the
+ * name that carries the trick (a letter from another alphabet, "rn" standing in for "m", extra
+ * words bolted on). The name being copied gets null here, so an honest merchant is never flagged
+ * for having an impostor.
+ */
 export function resemblance(a: string, b: string): string | null {
   const pa = plain(a);
   const pb = plain(b);
   if (!pa || !pb || pa === pb) return null;
-  // Letters from another alphabet mark a name built to look like another.
-  const odd = /[^\x00-\x7f]/.test(a);
-  if (skeleton(a) === skeleton(b)) return odd ? "uses look-alike characters to read the same as" : "reads the same at a glance as";
-  if (Math.min(pa.length, pb.length) >= 6 && editDistance(pa, pb) <= 2) return "is one or two letters away from";
+  if (skeleton(a) === skeleton(b)) {
+    if (/[^\x00-\x7f]/.test(a)) return "uses look-alike characters to read the same as";
+    // Only the name that needed folding is the look-alike. If neither or both did, it cannot be told apart here.
+    const aFolded = skeleton(a) !== pa;
+    const bFolded = skeleton(b) !== pb;
+    if (aFolded && !bFolded) return "reads the same at a glance as";
+    if (!aFolded && bFolded) return null;
+    return "reads the same at a glance as";
+  }
   if (pb.length >= 6 && pa.length > pb.length && pa.includes(pb)) return "contains, with words added, the name of";
+  if (pa.length >= 6 && pb.length > pa.length && pb.includes(pa)) return null;
+  if (Math.min(pa.length, pb.length) >= 6 && editDistance(pa, pb) <= 2) return "is one or two letters away from";
   return null;
 }
 
@@ -85,7 +97,13 @@ export function lookalikes(attempt: PaymentAttempt): string[] {
       for (const t of theirs) {
         if (m.kind !== t.kind) continue;
         const how = resemblance(m.value, t.value);
-        if (how) notes.add(`The ${m.kind} "${m.value}" ${how} "${t.value}", another merchant the agent saw.`);
+        if (how) {
+          notes.add(`The ${m.kind} "${m.value}" ${how} "${t.value}", another merchant the agent saw.`);
+          continue;
+        }
+        // The other way round: this payee is the name being copied. Said plainly, so it is not read as a mark against it.
+        const copied = resemblance(t.value, m.value);
+        if (copied) notes.add(`Another merchant the agent saw, "${t.value}", ${copied} this payee's ${m.kind}, "${m.value}". This payee is the one being copied.`);
       }
   }
   return [...notes];
