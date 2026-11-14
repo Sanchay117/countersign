@@ -1,10 +1,26 @@
 # Countersign
 
-**The second signature on every payment your AI agent makes.**
+**A second signature on every AI agent payment: it checks what the money is for.**
 
-A spending limit knows how much an agent may spend. It cannot know what the money is for. Countersign reads each x402 payment on Kite against the task the owner gave, using SERV Reasoning, before the wallet signs. The verdict is one of three: countersigned, refer to drawer (ask the owner), or payment stopped.
+[Try it, no sign-up](https://countersign-ten-xi.vercel.app) · [Code](https://github.com/Sanchay117/countersign) · SERV Hackathon, Edition 02 · Track: **Kite**
 
-Built for the SERV Hackathon, Edition 02. Track: **Kite**.
+On 14 November 2026 I gave an AI agent a wallet with a $0.05 per-payment limit and asked it for the cheapest Berlin weather forecast. It paid $0.04 for a forecast that was listed at $0.0015. The merchant raised the price at the paywall, the amount was under the limit, and the payment settled on Kite testnet ([transaction](https://testnet.kitescan.ai/tx/0xc198a5832d50e1d163c99361030b21ccedc1e615ec625eda9792fd58d392e8bf)). A spending limit knows how much. It cannot know what for.
+
+So I built Countersign.
+
+1. You give the agent a task in plain words, and a budget.
+2. When a merchant asks to be paid, Countersign reads that request against your task: six exact checks in code, then five judgment calls by SERV Reasoning.
+3. The wallet signs only if all eleven pass. Otherwise the payment is stopped, or held for you, with the reason in one sentence.
+
+Countersign can only refuse. It never holds money and never signs by itself. If SERV cannot be reached, nothing is signed.
+
+**Proof, measured on 14 November 2026.** 54 test payments, with the right answers written first. Spending limits alone stopped 5 of the 40 bad ones. Countersign stopped all 40, and still signed 13 of the 14 good ones. A check costs about $0.0006 in SERV tokens. Every run on the site is a real payment on Kite testnet.
+
+### For judges: try it in 60 seconds
+
+Open [countersign-ten-xi.vercel.app](https://countersign-ten-xi.vercel.app). The first screen already shows a recorded real run. Press **Send two agents shopping**. In about 35 seconds one agent loses $0.04 to a trap, and the other stops two traps and pays the honest merchant. Every payment links to the Kite explorer. Then open **Proof** and run any of the 54 test payments live.
+
+Everything below is the detail.
 
 ## The problem
 

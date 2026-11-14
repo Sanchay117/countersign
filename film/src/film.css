@@ -1,0 +1,36 @@
+/* The film is rendered frame by frame, so nothing may move on the browser's own clock. */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The site sets these through next/font. Here they point at the same families, loaded in theme.ts. */
+:root {
+  --font-display: "Bodoni Moda";
+  --font-text: "Instrument Sans";
+  --font-typed: "Courier Prime";
+  --font-hand: "Caveat";
+  --font-autograph: "Mrs Saint Delafield";
+}
+
+body {
+  background: #e9ede1;
+}
+
+/* The stamp and the signature are driven by the frame, through two variables set on a wrapper:
+   --ink (0 to 1, how much of the stamp has landed) and --write (0 to 1, how much is signed). */
+.cheque .stamp {
+  opacity: 0 !important;
+}
+
+.cheque[data-state="block"] .stamp-stop,
+.cheque[data-state="hold"] .stamp-drawer {
+  opacity: calc(var(--ink, 1) * 0.92) !important;
+  scale: var(--slam, 1);
+}
+
+.cheque[data-state="sign"] .autograph span {
+  clip-path: inset(-20% calc((1 - var(--write, 1)) * 100%) -20% 0) !important;
+}

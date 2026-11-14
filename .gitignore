@@ -11,3 +11,7 @@ next-env.d.ts
 .claude
 .kite-passport
 src/data/bench.failed.json
+proof/
+film/public/audio
+film/public/capture
+film/public/vo

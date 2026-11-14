@@ -1,0 +1,47 @@
+import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
+import "./site/globals.css";
+import "./film.css";
+import { FPS, type Plan } from "./plan.ts";
+import { Captions, Scene } from "./scenes.tsx";
+import { C } from "./theme.ts";
+
+export type FilmProps = {
+  plan?: Plan;
+  captions: boolean;
+};
+
+// Scenes that already set their narration in type need no captions under it.
+const SELF_CAPTIONED = new Set(["hook", "name", "how", "proof", "close"]);
+
+/** Each scene comes up out of the paper over a few frames, so cuts land softly. */
+function Lift() {
+  const f = useCurrentFrame();
+  return <AbsoluteFill style={{ background: C.paper, opacity: interpolate(f, [0, 7], [1, 0], { extrapolateRight: "clamp" }) }} />;
+}
+
+export function Film({ plan, captions }: FilmProps) {
+  if (!plan) return null;
+  const end = plan.total;
+  return (
+    <AbsoluteFill style={{ background: C.paper }}>
+      {plan.shots.map((shot) => (
+        <Sequence key={shot.id} from={shot.from} durationInFrames={shot.frames}>
+          <Scene shot={shot} plan={plan} />
+          {captions && !SELF_CAPTIONED.has(shot.id) && <Captions shot={shot} />}
+          <Lift />
+        </Sequence>
+      ))}
+      {plan.shots.map((shot) => (
+        <Sequence key={shot.id} from={shot.from + shot.voiceAt} durationInFrames={Math.ceil(shot.take.seconds * FPS) + 2}>
+          <Audio src={staticFile(shot.take.file)} />
+        </Sequence>
+      ))}
+      <Audio src={staticFile("audio/bed.wav")} volume={(f) => 0.34 * interpolate(f, [end - 70, end - 8], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} />
+      {plan.sfx.map((s, i) => (
+        <Sequence key={i} from={s.at} durationInFrames={30}>
+          <Audio src={staticFile(s.file)} volume={s.volume} />
+        </Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+}

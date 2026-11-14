@@ -1,0 +1,27 @@
+{
+  "name": "countersign-film",
+  "private": true,
+  "description": "The demo film: type and cheques drawn with the site's own components, plus real footage of two agents shopping on the live site.",
+  "type": "module",
+  "scripts": {
+    "voice": "node --env-file=../../appwrite/.env scripts/voice.ts",
+    "audio": "node scripts/audio.mjs",
+    "capture": "node scripts/capture.ts",
+    "render": "remotion render Countersign out/countersign-raw.mp4 --crf=18",
+    "master": "node scripts/master.mjs",
+    "thumbnails": "remotion still Thumbnail out/thumbnail-1920.png && remotion still Thumbnail out/thumbnail-1280.png --scale=0.6667"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.537",
+    "@remotion/google-fonts": "4.0.537",
+    "remotion": "4.0.537",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.0.0",
+    "playwright-core": "1.64.1",
+    "typescript": "5.9.3"
+  }
+}
