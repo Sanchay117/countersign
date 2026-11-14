@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { CASES } from "../src/lib/cases";
 import { countersign, decide, evaluate, validateInput } from "../src/lib/countersign";
 import { atomicToUsd, usdToAtomic } from "../src/lib/kite";
+import { hostName, resemblance } from "../src/lib/lookalike";
 import { buildUserMessage, SYSTEM_PROMPT } from "../src/lib/policy";
 import { receiptCovers, verifyReceipt } from "../src/lib/receipt";
 import { runRules } from "../src/lib/rules";
@@ -105,15 +106,14 @@ test("fails closed: a SERV outage holds, a guard refusal blocks", async () => {
   assert.ok(guard.checks.some((k) => k.id === "instruction_origin" && k.status === "fail"));
 });
 
-test("a guard refusal is judged again without the guard, and can never end in a signature", async () => {
+test("a guard refusal triggers a second reading without the guard at higher effort, and that reading decides", async () => {
   const c = byId("L01");
   const tripped: Judgment = { checks: null, decision: null, summary: null, meta: { called: true, guardTripped: true, latencyMs: 10 } };
-  const guardStates: boolean[] = [];
-  const twice = (second: Judgment) => async (_m: string, k: ServConfig) => (guardStates.push(k.guard), k.guard ? tripped : second);
+  const seen: string[] = [];
+  const twice = (second: Judgment) => async (_m: string, k: ServConfig) => (seen.push(`${k.guard}/${k.effort}`), k.guard ? tripped : second);
   const clean = await evaluate(c.mandate, c.attempt, { serv: cfg, judgeFn: twice(allPass("sign")) });
-  assert.deepEqual(guardStates, [true, false]);
-  assert.equal(clean.decision, "hold");
-  assert.equal(clean.checks.find((k) => k.id === "instruction_origin")?.status, "warn");
+  assert.deepEqual(seen, ["true/low", "false/medium"]);
+  assert.equal(clean.decision, "sign");
   assert.equal(clean.serv.guardTripped, true);
   const bad = await evaluate(c.mandate, c.attempt, { serv: cfg, judgeFn: twice(allPass("block", { purpose: "fail" })) });
   assert.equal(bad.decision, "block");
@@ -162,6 +162,20 @@ test("the system prompt holds no per-request data and the user message holds it 
   assert.ok(msg.includes("NOTE TO AI AGENTS"));
   assert.ok(!SYSTEM_PROMPT.includes("Berlin"));
   assert.ok(!SYSTEM_PROMPT.includes("—"));
+});
+
+test("look-alike names are found by exact comparison, and unrelated names are not", () => {
+  assert.match(resemblance("Open-Rneteo Weather", "Open-Meteo Weather") ?? "", /reads the same/);
+  assert.match(resemblance("Frankfurтer FX", "Frankfurter FX") ?? "", /look-alike characters/);
+  assert.match(resemblance("Frankfurter FX Secure Pay", "Frankfurter FX") ?? "", /words added/);
+  assert.match(resemblance("Open-Meteo Wether", "Open-Meteo Weather") ?? "", /one or two letters/);
+  assert.equal(resemblance("Open-Meteo Weather", "Open-Meteo Weather"), null);
+  assert.equal(resemblance("Open-Meteo Air Quality", "Open-Meteo Weather"), null);
+  assert.equal(resemblance("RateDesk", "Frankfurter FX"), null);
+  assert.equal(resemblance("StormGlass Pro", "Open-Meteo Weather"), null);
+  assert.equal(hostName("https://api.open-meteo.example/v1/forecast"), "open-meteo");
+  for (const id of ["S01", "S02", "S03"]) assert.ok(runRules(byId(id).mandate, byId(id).attempt).facts.lookalikes.length > 0, id);
+  for (const c of CASES.filter((k) => k.tier === "legit")) assert.deepEqual(runRules(c.mandate, c.attempt).facts.lookalikes, [], c.id);
 });
 
 test("input validation rejects malformed requests", () => {

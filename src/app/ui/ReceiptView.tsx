@@ -55,7 +55,7 @@ export function ReceiptView({ receipt, open = false, title = "Receipt" }: { rece
         {s.called && s.guardTripped ? (
           <div>
             <dt>Prompt guard</dt>
-            <dd>refused this request on first reading, so it cannot be signed</dd>
+            <dd>fired on first reading, so the request was read again at higher effort</dd>
           </div>
         ) : null}
         <div>

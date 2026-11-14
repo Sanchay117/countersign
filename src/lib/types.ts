@@ -95,6 +95,8 @@ export interface Facts {
   payeeMatchesListing: boolean | null;
   priorPaymentsToPayee: number;
   priorPaymentsForResource: number;
+  /** Exact string resemblances between this payee and the other merchants the agent saw. */
+  lookalikes: string[];
 }
 
 export interface ServMeta {

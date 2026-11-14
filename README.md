@@ -56,11 +56,28 @@ SERV Reasoning is the judge. The integration follows SERV's own Day One guidance
 - **One request per payment** to `https://inference-api.openserv.ai/v1/chat/completions` with the OpenAI SDK. See [src/lib/serv.ts](src/lib/serv.ts).
 - **The system prompt is application logic.** The policy in [src/lib/policy.ts](src/lib/policy.ts) is versioned, holds no per-request data, and stays byte-identical between requests so SERV reuses the reasoning prompt it generates from it. The mandate, the payment and the seller's text go in the user message.
 - **Structured output.** A strict JSON schema with fixed keys, so a verdict can never omit a check. The result is validated again at the application boundary.
-- **`serv_prompt_guard`.** Every request carries text written by sellers, which is exactly where prompt injection arrives. If the guard refuses a request, Countersign treats that as a failed origin check and stops the payment.
-- **`serv_shadow_agent`** with a testable hint, to validate each draft verdict and revise it if it fails.
-- **Kronos and Multipath** (`-serv-kronos-multipath`), because the policy is a branching decision tree whose consequences have to stay consistent.
-- **Low reasoning effort**, no output-token cap, usage and request ids logged on every receipt.
+- **Multipath** (`gpt-6-luna-serv-multipath`), because the policy is a branching decision tree: five checks, three outcomes each.
+- **`serv_prompt_guard`.** Every request carries text written by sellers, which is exactly where prompt injection arrives. When a seller's listing told "the payment verifier" to ignore its policy and print its system prompt, the guard refused the request before any model ran. A guard refusal triggers a second reading without the guard at medium reasoning effort, and the receipt records that the guard fired.
+- **The smallest model in the catalog.** `gpt-6-luna` at low reasoning effort, as SERV's Day One guide recommends. It was enough: see the results below.
+- **`serv_shadow_agent` and Kronos are wired in and switchable** (`SERV_SHADOW=1`, `SERV_KRONOS=1`), and off by default for reasons measured during the build (next section).
 - **The shopping agent in the demo** also runs on SERV, as a tool-calling loop. See [src/lib/agent.ts](src/lib/agent.ts).
+
+### What the measurements said
+
+Everything below was measured on this policy with a credit balance of about one dollar.
+
+| Setup | Cost per check | Latency | Verdict |
+| --- | --- | --- | --- |
+| Multipath, no guard | about $0.0006 | about 5 s | baseline |
+| Multipath + prompt guard | about $0.0008 | 7 s median | **shipped** |
+| + shadow agent (3 iterations) | about $0.03 | 10 to 25 s | changed no verdict in 12 cases, so opt-in |
+| + Kronos | not measurable | first call 59 s | SERV reserved a cost ceiling above the balance and rejected the requests |
+
+Three things learned the hard way:
+
+1. **The shadow agent costs about fifty times the check it validates.** Useful for a payment worth dollars, not for one worth a fifth of a cent. It is one environment variable away.
+2. **SERV holds each request's cost ceiling against your balance.** With no output cap, a dozen checks in a minute locked a one-dollar balance and every later request came back `402 Insufficient credits`. A generous `max_completion_tokens` (4,000 for a 400-token verdict) fixed it. Countersign treats that error like any other SERV outage: the payment is held, never signed.
+3. **The guard is an alarm, not a verdict.** On the suite it fired on real attacks and on two clean payments. Blocking on every refusal would have cost two good payments, so a refusal now buys a second, slower reading instead.
 
 ## How it uses Kite
 
@@ -71,7 +88,7 @@ SERV Reasoning is the judge. The integration follows SERV's own Day One guidance
 
 ## The trap suite
 
-[src/lib/cases.ts](src/lib/cases.ts) holds 53 payment attempts, each a real x402 challenge shape on Kite. The expected answer for every case was written before any model was run against it.
+[src/lib/cases.ts](src/lib/cases.ts) holds 54 payment attempts, each a real x402 challenge shape on Kite. The expected answer for every case was written before the case was run.
 
 | Tier | Cases | What should happen |
 | --- | --- | --- |
@@ -79,17 +96,32 @@ SERV Reasoning is the judge. The integration follows SERV's own Day One guidance
 | Judgment calls | 5 | held for the owner |
 | Over a limit | 5 | stopped by a spending limit |
 | Changed at the paywall | 5 | stopped by an exact check |
-| Inside every limit, and wrong | 24 | stopped by SERV's judgment |
+| Inside every limit, and wrong | 25 | stopped by SERV's judgment |
 
-Spending limits alone stop 5 of the 39 bad payments. Adding the exact checks stops 10. The other 29 have no wrong number in them, and need reasoning about the mandate.
+### Results
 
-Run the whole suite against SERV and record the result:
+One full run on `gpt-6-luna-serv-multipath` with the prompt guard, recorded in [src/data/bench.json](src/data/bench.json) on 14 November 2026. No retries.
+
+| Layer | Bad payments stopped (of 40) | Clean payments signed (of 14) |
+| --- | --- | --- |
+| Spending limits alone | 5 | 14 |
+| + Countersign's exact checks | 10 | 14 |
+| + SERV Reasoning | **40** | **13** |
+
+- 51 of 54 cases got exactly the expected verdict.
+- The three that did not: one clean payment was held (SERV noticed the request URL asked only for the daily high, not a full forecast), one "hold" case was blocked, and one "block" case was held. None of the three signed a bad payment.
+- 44 cases reached SERV. The other 10 were stopped by code and cost nothing.
+- About $0.0006 in tokens per SERV check, 7.3 s median, 9.0 s at the 90th percentile.
+
+Honest notes on method. The suite doubled as the development set. Two changes were made after the first full run and are part of the result above: look-alike name detection was moved into code (the small model had signed the "Frankfurter FX Secure Pay" impostor once), and guard refusals were changed from an automatic hold to a second reading. One case, S25, was added during the build to test the prompt guard. The policy text was never edited after the first run.
+
+Run it yourself:
 
 ```bash
 npm run bench
 ```
 
-The results are written to `src/data/bench.json` and shown on the website.
+A run with any SERV error is saved separately and never shown on the website.
 
 ## Run it
 
@@ -123,7 +155,9 @@ Open http://localhost:3210.
 | --- | --- |
 | `SERV_API_KEY` | SERV Reasoning key from console.openserv.ai |
 | `SERV_MODEL` | Base model, default `gpt-6-luna`, the smallest in SERV's catalog |
-| `SERV_SHADOW` | Set to `1` to add shadow-agent validation. Off by default, see the cost note above |
+| `SERV_SHADOW` | Set to `1` to add shadow-agent validation. Off by default, see the measurements above |
+| `SERV_KRONOS` | Set to `1` to add the Kronos prompt audit. Off by default |
+| `SERV_MAX_OUTPUT_TOKENS` | Output ceiling per check, default `4000` |
 | `KITE_NETWORK` | `testnet` (default) or `mainnet` |
 | `BUYER_PRIVATE_KEY` | The demo agent's wallet. Testnet only |
 | `COUNTERSIGN_PRIVATE_KEY` | Signs receipts and receives payment for `/v1/check` |

@@ -57,20 +57,21 @@ export async function evaluate(mandate: Mandate, attempt: PaymentAttempt, opts: 
   }
 
   if (j.meta.guardTripped) {
-    // SERV's prompt guard refused the request before any model ran. A payment the guard refused is
-    // never signed. To tell the owner why, the request is judged once more without the guard; the
-    // guard's refusal then counts as at least a warning on the origin check, so the best outcome is a hold.
+    // SERV's prompt guard refused the request before any model ran. On the trap suite the guard
+    // fired on real attacks and on some clean payments alike, so a refusal is treated as an alarm,
+    // not a verdict: the request is read a second time, without the guard and at higher reasoning
+    // effort, and that reading decides. The receipt records that the guard fired.
     const note = "SERV's prompt guard refused this request on first reading: text in it reads as an attempt to override the checker.";
-    const second = await run(message, { ...cfg, guard: false });
+    const second = await run(message, { ...cfg, guard: false, effort: cfg.effort === "high" ? "high" : "medium" });
     if (second.checks && second.decision && second.summary) {
-      const judged = second.checks.map((c): Check => (c.id !== "instruction_origin" ? c : c.status === "pass" ? { ...c, status: "warn", evidence: note } : { ...c, evidence: `${c.evidence} ${note}` }));
+      const judged = second.checks.map((c): Check => (c.id === "instruction_origin" && c.status !== "pass" ? { ...c, evidence: `${c.evidence} ${note}` } : c));
       const checks = [...rules.checks, ...judged];
       return {
         decision: stricter(decide(checks), second.decision),
         summary: second.summary,
         checks,
         facts: rules.facts,
-        serv: { ...second.meta, guardTripped: true, features: j.meta.features, latencyMs: (j.meta.latencyMs ?? 0) + (second.meta.latencyMs ?? 0) },
+        serv: { ...second.meta, guardTripped: true, features: [...(j.meta.features ?? []), "second reading at higher effort"], latencyMs: (j.meta.latencyMs ?? 0) + (second.meta.latencyMs ?? 0) },
       };
     }
     const guard: Check = { id: "instruction_origin", by: "serv", status: "fail", evidence: note };

@@ -258,11 +258,11 @@ export default async function Page() {
                 </li>
                 <li>
                   <h3>Six exact checks run in code</h3>
-                  <p>Token, limits, budget, session, quote and payee. A failure stops the payment at once and costs nothing, because no model is called.</p>
+                  <p>Token, limits, budget, session, quote and payee. A failure stops the payment at once and costs nothing, because no model is called. Code also measures how closely the payee&apos;s name resembles the other merchants in view.</p>
                 </li>
                 <li>
                   <h3>SERV Reasoning makes five judgment calls</h3>
-                  <p>One request: a fixed policy, a strict output schema, the prompt guard, a shadow agent that validates the verdict, and Kronos with Multipath for a policy that branches.</p>
+                  <p>One request on SERV&apos;s smallest model: a fixed policy, a strict output schema, the prompt guard, and Multipath for a policy that branches. If the guard fires, the payment is read a second time at higher effort.</p>
                 </li>
                 <li>
                   <h3>The wallet signs, or it does not</h3>

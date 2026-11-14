@@ -50,7 +50,9 @@ export function servConfigFromEnv(env: Record<string, string | undefined> = proc
     // The smallest model in SERV's catalog. Start small and move up only if the trap suite says so.
     model: (env.SERV_MODEL ?? "").trim() || "gpt-6-luna",
     effort: ((env.SERV_EFFORT ?? "low").trim() as ServConfig["effort"]) || "low",
-    kronos: flag(env.SERV_KRONOS, true),
+    // Kronos audits the reasoning prompt SERV generates. It is opt-in here because SERV reserves a
+    // large cost ceiling for Kronos requests and rejects them outright on a small credit balance.
+    kronos: flag(env.SERV_KRONOS, false),
     multipath: flag(env.SERV_MULTIPATH, true),
     guard: flag(env.SERV_GUARD, true),
     // Off by default. Measured on this policy, the shadow agent multiplied the cost of a check

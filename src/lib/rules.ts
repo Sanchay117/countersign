@@ -4,6 +4,7 @@
  * (see policy.ts). A failed rule blocks the payment without spending a token.
  */
 import { atomicToUsd, kiteChainByNetwork, usdToAtomic } from "./kite";
+import { lookalikes } from "./lookalike";
 import type { Check, Facts, Mandate, PaymentAttempt, RuleCheckId } from "./types";
 
 /** The limits a spending session enforces on its own: token, amount, budget and window. */
@@ -121,6 +122,7 @@ export function runRules(mandate: Mandate, attempt: PaymentAttempt): RuleResult 
     payeeMatchesListing: payeeMatches,
     priorPaymentsToPayee: history.filter((p) => same(p.payTo, c.payTo)).length,
     priorPaymentsForResource: history.filter((p) => p.resourceUrl === attempt.resourceUrl).length,
+    lookalikes: lookalikes(attempt),
   };
 
   return { checks, facts, failed: checks.some((k) => k.status === "fail") };
