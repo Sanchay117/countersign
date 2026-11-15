@@ -105,7 +105,8 @@ export function Cheque({ serial, network, payee, amount, listed, memo, mandate, 
           </div>
           <div className="cheque-sig cheque-countersig">
             <p className="autograph" aria-hidden={state !== "sign"}>
-              <span>{signedBy}</span>
+              {/* Only a signed cheque carries the signature text, so the page text never shows one that was not given. */}
+              <span>{state === "sign" ? signedBy : " "}</span>
             </p>
             <span>Countersign here before the payee is paid</span>
           </div>
@@ -115,14 +116,19 @@ export function Cheque({ serial, network, payee, amount, listed, memo, mandate, 
       <div className="cheque-checking" aria-hidden="true">
         <Mark size={size === "hero" ? 46 : 34} spin />
       </div>
-      <div className="stamp stamp-stop" aria-hidden="true">
-        <span>Payment</span>
-        <span>stopped</span>
-      </div>
-      <div className="stamp stamp-drawer" aria-hidden="true">
-        <span>Refer to</span>
-        <span>drawer</span>
-      </div>
+      {/* Each stamp exists only in its own state; its landing animation runs when it appears. */}
+      {state === "block" ? (
+        <div className="stamp stamp-stop" aria-hidden="true">
+          <span>Payment</span>
+          <span>stopped</span>
+        </div>
+      ) : null}
+      {state === "hold" ? (
+        <div className="stamp stamp-drawer" aria-hidden="true">
+          <span>Refer to</span>
+          <span>drawer</span>
+        </div>
+      ) : null}
     </article>
   );
 }

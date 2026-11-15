@@ -121,10 +121,10 @@ export default async function Page() {
               </dd>
             </div>
             <div>
-              <dt>Stopped by Countersign</dt>
+              <dt>Stopped or held by Countersign</dt>
               <dd>
                 {t ? `${t.trapsStopped} of ${t.traps}` : "not run yet"}
-                <small>{t ? "the same payments, same limits" : "add a SERV key and run npm run bench"}</small>
+                <small>{t ? "the same payments, same limits, none signed" : "add a SERV key and run npm run bench"}</small>
               </dd>
             </div>
             <div>
@@ -338,7 +338,7 @@ export default async function Page() {
                   {t ? t.trapsStopped : "?"}
                   <small> of {layers.traps}</small>
                 </p>
-                <p>{t ? `stopped, with ${t.cleanSigned} of ${t.clean} clean payments still signed.` : "Not recorded on this deployment yet."}</p>
+                <p>{t ? `stopped or held for the owner, none signed, with ${t.cleanSigned} of ${t.clean} clean payments still signed.` : "Not recorded on this deployment yet."}</p>
               </div>
             </div>
 

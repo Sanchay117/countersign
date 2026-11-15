@@ -83,6 +83,29 @@ function reduce(lane: Lane, e: AgentEvent): Lane {
   return { ...lane, items };
 }
 
+/** What a lane is doing right now, in a few words, for the status line under the button. */
+function laneStatus(lane: Lane): string {
+  if (lane.done) return "finished";
+  const last = lane.items[lane.items.length - 1];
+  if (!last) return "starting";
+  switch (last.kind) {
+    case "browse":
+      return "reading the market";
+    case "thought":
+      return "deciding";
+    case "buy": {
+      const p = last.payment;
+      if (p) return p.outcome === "paid" ? `paid ${last.merchant}` : p.outcome === "stopped" ? `stopped at ${last.merchant}` : `payment to ${last.merchant} not settled`;
+      if (last.receipt) return `verdict on ${last.merchant}`;
+      return `asked to pay ${last.merchant}`;
+    }
+    case "answer":
+      return "answering its owner";
+    case "error":
+      return "stopped by an error";
+  }
+}
+
 /** The server refused to start a run (rate limit, no key, no wallet). Nothing was spent. */
 class NotStarted extends Error {}
 
@@ -291,6 +314,18 @@ export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }
 
   const running = limits.running || guarded.running;
 
+  // Seconds since the button was pressed, shown in the status line while the agents shop.
+  const [elapsed, setElapsed] = useState(0);
+  const liveNote = useRef<HTMLParagraphElement | null>(null);
+  useEffect(() => {
+    if (!running) return;
+    const started = Date.now();
+    setElapsed(0);
+    liveNote.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const tick = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(tick);
+  }, [running]);
+
   const run = async () => {
     const t = task.trim();
     if (!t || running) return;
@@ -378,6 +413,15 @@ export function AgentDemo({ recorded = null }: { recorded?: RecordedRun | null }
       </form>
 
       {paused ? <p className="notice" style={{ marginTop: "1.2rem" }}>{paused}</p> : null}
+
+      {running ? (
+        <p className="recorded-note live-note" ref={liveNote} aria-live="polite">
+          <Mark size={20} spin />
+          <span>
+            <b>Live run, {elapsed} s.</b> Agent A: {laneStatus(limits)}. Agent B: {laneStatus(guarded)}. A run takes about 35 seconds, and each payment appears below as it happens.
+          </span>
+        </p>
+      ) : null}
 
       {showingRecorded && recorded ? (
         <p className="recorded-note">

@@ -439,6 +439,8 @@ button {
     flex-direction: column;
     gap: 0.25rem;
     padding-left: 0;
+    /* room for the longest verdict line, so the text below does not jump between cheques */
+    min-height: 6.2em;
   }
   .hero-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -932,6 +934,19 @@ button {
   font-size: 0.8rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.live-note {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  scroll-margin: 1rem;
+}
+
+.live-note .mark {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--engrave);
 }
 
 .lanes {
@@ -1664,12 +1679,34 @@ button {
     border-left: 0;
     border-top: 1px solid var(--ink);
   }
+  /* On a phone the case number and verdict share the top line, so the title gets the full width. */
   .case-row {
-    grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.8rem;
+  }
+  .case-row .id {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .case-row .verdict-tag {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .case-row .title {
+    grid-row: 2;
+    grid-column: 1 / -1;
   }
   .case-row .link-btn {
-    grid-column: 2 / -1;
+    grid-row: 3;
+    grid-column: 1 / -1;
     justify-self: start;
+  }
+  .suite-tier > summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .suite-tier > summary .typed {
+    grid-row: auto;
+    grid-column: 1;
   }
 }
 

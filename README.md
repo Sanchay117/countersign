@@ -14,7 +14,7 @@ So I built Countersign.
 
 Countersign can only refuse. It never holds money and never signs by itself. If SERV cannot be reached, nothing is signed.
 
-**Proof, measured on 14 November 2026.** 54 test payments, with the right answers written first. Spending limits alone stopped 5 of the 40 bad ones. Countersign stopped all 40, and still signed 13 of the 14 good ones. A check costs about $0.0006 in SERV tokens. Every run on the site is a real payment on Kite testnet.
+**Proof, measured on 14 November 2026.** 54 test payments, with the right answers written first: 40 that should not be signed and 14 that should. Spending limits alone stopped 5 of the 40; the other 35 were under the limits, like the Berlin one. Countersign signed none of the 40: it stopped 35 and held 5 for the owner. It signed 13 of the 14 good ones and held the last one for the owner to look at. A check costs about $0.0006 in SERV tokens. Any case can be run live on the site, and every run there is a real payment on Kite testnet.
 
 ### For judges: try it in 60 seconds
 
@@ -102,6 +102,28 @@ Three things learned the hard way:
 - **Real settlement.** The demo market is nine x402 merchants on Kite testnet, paid in pieUSD. Every payment in the live run is a real transaction with a link to the explorer.
 - **The mandate mirrors a Passport session.** Per-payment limit, total budget and time window are the same three limits a Kite Passport spending session has. Countersign adds the fourth: what the money is for.
 
+### Add it to your own agent
+
+Whoever runs an agent's wallet pays for the checks: an agent platform, a wallet, or a Kite Passport agent. They add one hook to the x402 client the agent already uses, and pay $0.005 a check over x402 from a wallet. There is no account to open and no contract to sign.
+
+```ts
+// payForCheck is fetch wrapped with x402, so each check pays $0.005 on Kite.
+client.onBeforePaymentCreation(async ({ selectedRequirements }) => {
+  const res = await payForCheck("https://countersign-ten-xi.vercel.app/v1/check", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      mandate, // the owner's task and limits, as in the API section below
+      attempt: { resourceUrl: url, challenge: selectedRequirements },
+    }),
+  });
+  const receipt = await res.json();
+  if (receipt.decision !== "sign") return { abort: true, reason: receipt.summary };
+});
+```
+
+If the check cannot be reached, `res.json()` throws inside the hook and the payment is not made. The same hook runs in [src/lib/x402.ts](src/lib/x402.ts), where the demo calls Countersign in-process instead of over HTTP.
+
 ## The trap suite
 
 [src/lib/cases.ts](src/lib/cases.ts) holds 54 payment attempts, each a real x402 challenge shape on Kite. The expected answer for every case was written before the case was run.
@@ -118,11 +140,11 @@ Three things learned the hard way:
 
 One full run on `gpt-6-luna-serv-multipath` with the prompt guard, recorded in [src/data/bench.json](src/data/bench.json) on 14 November 2026. No retries.
 
-| Layer | Bad payments stopped (of 40) | Clean payments signed (of 14) |
+| Layer | Bad payments not signed (of 40) | Clean payments signed (of 14) |
 | --- | --- | --- |
 | Spending limits alone | 5 | 14 |
 | + Countersign's exact checks | 10 | 14 |
-| + SERV Reasoning | **40** | **13** |
+| + SERV Reasoning | **40** (35 stopped, 5 held for the owner) | **13** (the other held) |
 
 - 51 of 54 cases got exactly the expected verdict.
 - The three that did not: one clean payment was held (SERV noticed the request URL asked only for the daily high, not a full forecast), one "hold" case was blocked, and one "block" case was held. None of the three signed a bad payment.
@@ -170,7 +192,7 @@ Open http://localhost:3210.
 | Variable | Meaning |
 | --- | --- |
 | `SERV_API_KEY` | SERV Reasoning key from console.openserv.ai |
-| `SERV_MODEL` | Base model, default `gpt-6-luna`, the smallest in SERV's catalog |
+| `SERV_MODEL` | Base model, default `gpt-6-luna`, the cheapest in [SERV's catalog](https://docs.openserv.ai/serv-reasoning/models) |
 | `SERV_SHADOW` | Set to `1` to add shadow-agent validation. Off by default, see the measurements above |
 | `SERV_KRONOS` | Set to `1` to add the Kronos prompt audit. Off by default |
 | `SERV_MAX_OUTPUT_TOKENS` | Output ceiling per check, default `4000` |

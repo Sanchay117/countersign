@@ -2,13 +2,13 @@ Countersign: the second signature on every AI agent payment.
 
 A spending limit knows how much. It can't know what for.
 
-Limits alone stopped 5 of 40 bad payments. Countersign stopped all 40.
+Limits alone stopped 5 of 40 bad payments. Countersign signed none.
 
 Built on SERV Reasoning + Kite for the @openservai hackathon.
 
 https://countersign-ten-xi.vercel.app
 ---
-How it reads a payment: 6 exact checks in code (free), then 5 judgment calls by SERV Reasoning on its smallest model, about a tenth of a cent.
+How it reads a payment: 6 exact checks in code (free), then 5 judgment calls by SERV Reasoning on its cheapest model, under a tenth of a cent.
 
 Every run on the site is a real x402 payment on Kite testnet.
 
