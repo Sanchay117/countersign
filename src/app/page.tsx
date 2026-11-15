@@ -64,7 +64,8 @@ export default async function Page() {
   const origin = (process.env.PUBLIC_ORIGIN ?? "").trim() || `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
   const network = (process.env.KITE_NETWORK ?? "testnet") === "mainnet" ? "Kite Mainnet" : "Kite Testnet";
   const price = (process.env.CHECK_PRICE_USD ?? "").trim() || "0.005";
-  const repo = (process.env.NEXT_PUBLIC_REPO_URL ?? "").trim();
+  const repo = (process.env.NEXT_PUBLIC_REPO_URL ?? "").trim() || "https://github.com/Sanchay117/countersign";
+  const video = (process.env.NEXT_PUBLIC_VIDEO_URL ?? "").trim() || "https://youtu.be/QDLIcxuPGi8";
 
   const b = bench as BenchFile;
   const t = b.totals;
@@ -84,7 +85,8 @@ export default async function Page() {
           <a href="#run">Live run</a>
           <a href="#how">How it reads</a>
           <a href="#proof">Proof</a>
-          {repo ? <a href={repo}>Code</a> : null}
+          <a href={video}>Video</a>
+          <a href={repo}>Code</a>
           <span className="label mast-net">{network}</span>
         </nav>
       </header>
@@ -405,11 +407,9 @@ export default async function Page() {
                   <a className="btn" href="#run">
                     Run it again
                   </a>
-                  {repo ? (
-                    <a className="btn btn-quiet" href={repo}>
-                      Read the code
-                    </a>
-                  ) : null}
+                  <a className="btn btn-quiet" href={repo}>
+                    Read the code
+                  </a>
                   <a className="btn btn-quiet" href="/healthz">
                     Service status
                   </a>
@@ -423,6 +423,9 @@ export default async function Page() {
       <footer className="wrap colophon">
         <div>
           <p>Built for the SERV Hackathon, Edition 02, on the Kite track. Runs on {network} with pieUSD, a test token with no value.</p>
+          <p>
+            <a href={video}>Watch the 75-second film</a> · <a href={repo}>Read the code on GitHub</a>
+          </p>
           <p>The six trap merchants are part of this demo. They are labelled as traps after each run, and they pay this project&apos;s own test addresses.</p>
         </div>
         <div>
