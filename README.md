@@ -2,7 +2,9 @@
 
 **A second signature on every AI agent payment: it checks what the money is for.**
 
-[Try it, no sign-up](https://countersign-ten-xi.vercel.app) · [Code](https://github.com/Sanchay117/countersign) · SERV Hackathon, Edition 02 · Track: **Kite**
+**Website, no sign-up:** [countersign-ten-xi.vercel.app](https://countersign-ten-xi.vercel.app) · **Demo video:** [youtu.be/QDLIcxuPGi8](https://youtu.be/QDLIcxuPGi8) · [X post](https://x.com/eepy_engineer/status/2121854462872666612) · SERV Hackathon, Edition 02 · Track: **Kite**
+
+[![Countersign demo video, 75 seconds](https://img.youtube.com/vi/QDLIcxuPGi8/maxresdefault.jpg)](https://youtu.be/QDLIcxuPGi8)
 
 On 14 November 2026 I gave an AI agent a wallet with a $0.05 per-payment limit and asked it for the cheapest Berlin weather forecast. It paid $0.04 for a forecast that was listed at $0.0015. The merchant raised the price at the paywall, the amount was under the limit, and the payment settled on Kite testnet ([transaction](https://testnet.kitescan.ai/tx/0xc198a5832d50e1d163c99361030b21ccedc1e615ec625eda9792fd58d392e8bf)). A spending limit knows how much. It cannot know what for.
 

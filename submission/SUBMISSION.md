@@ -19,8 +19,8 @@ A second signature on every AI agent payment: it checks what the money is for.
 
 - Try it, no sign-up: https://countersign-ten-xi.vercel.app
 - Code: https://github.com/Sanchay117/countersign
-- Video: (add the link after uploading film/out/countersign.mp4)
-- X post: (add the link after posting)
+- Video: https://youtu.be/QDLIcxuPGi8
+- X post: https://x.com/eepy_engineer/status/2121854462872666612
 
 ## Write-up
 
